@@ -94,6 +94,174 @@ def intro():
 
     intro_sound.stop()
 
+# ---------------- ФАЛЬШИВА ЗАГРУЗКА ----------------
+def fake_loading():
+    load_time = 3000  # загальна тривалість фальшивої загрузки в мс
+    bar_width = 400
+    bar_height = 30
+    bar_x = (WIDTH - bar_width) // 2
+    bar_y = HEIGHT // 2
+    start_ticks = pygame.time.get_ticks()
+
+    # Зменшуємо гучність музики головного меню
+    for i in range(50):
+        vol = pygame.mixer.music.get_volume()
+        pygame.mixer.music.set_volume(max(0, vol - 0.02))
+        pygame.time.delay(20)  # плавне убавлення гучності
+
+    running = True
+    while running:
+        clock.tick(FPS)
+        screen.fill((0, 0, 0))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        elapsed = pygame.time.get_ticks() - start_ticks
+        progress = min(1, elapsed / load_time)
+        percent = int(progress * 100)
+
+        pygame.draw.rect(screen, (50, 50, 50), (bar_x, bar_y, bar_width, bar_height))
+        pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, int(bar_width * progress), bar_height))
+        txt = font_mid.render(f"{percent}%", True, (255, 255, 255))
+        screen.blit(txt, txt.get_rect(center=(WIDTH // 2, bar_y - 40)))
+
+        pygame.display.update()
+
+        if progress >= 1:
+            running = False
+
+    pygame.mixer.music.set_volume(0.5)
+
+# ---------------- ОСНОВНИЙ ЦИКЛ ГРИ (1 вибір) ----------------
+def main_game():
+    pygame.mixer.music.stop()  # музика лобі більше не грає
+
+    bg_image = pygame.image.load("game_bg.png").convert()
+    bg_image = pygame.transform.scale(bg_image, (WIDTH, HEIGHT))
+
+    char_image = pygame.image.load("character.png").convert_alpha()
+
+    char_scale = 0.3
+    char_alpha = 0
+    char_y = HEIGHT + 80
+    char_target_y = HEIGHT // 2 - 50
+    char_speed = 4
+
+    app_image = pygame.image.load("app_icon.png").convert_alpha()
+    app_image = pygame.transform.scale(app_image, (100, 100))
+    app_alpha = 0
+    app_rect = app_image.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 70))
+
+    block_btn = pygame.Rect(WIDTH // 2 - 170, HEIGHT - 120, 150, 55)
+    unblock_btn = pygame.Rect(WIDTH // 2 + 20, HEIGHT - 120, 150, 55)
+
+    btn_alpha = 0
+
+    text_str = "Заблокувати цей додаток?"
+    text_display = ""
+    text_index = 0
+
+    char_sound = pygame.mixer.Sound("char_sound.mp3")
+    char_sound.set_volume(1.0)
+
+    start_ticks = pygame.time.get_ticks()
+    sound_played = False
+    choice = None
+    choice_ticks = 0
+
+    running = True
+    while running:
+        clock.tick(FPS)
+        screen.blit(bg_image, (0, 0))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and choice is None:
+                if block_btn.collidepoint(event.pos):
+                    choice = "block"
+                    choice_ticks = pygame.time.get_ticks()
+                if unblock_btn.collidepoint(event.pos):
+                    choice = "unblock"
+                    choice_ticks = pygame.time.get_ticks()
+
+        # звук через 3 сек
+        if not sound_played and pygame.time.get_ticks() - start_ticks > 3000:
+            char_sound.play()
+            sound_played = True
+
+        # персонаж — поява і збільшення
+        if char_alpha < 255:
+            char_alpha += 5
+        if char_scale < 1:
+            char_scale += 0.01
+        if char_y > char_target_y:
+            char_y -= char_speed
+
+        char_img = pygame.transform.scale(
+            char_image,
+            (int(char_image.get_width() * char_scale),
+             int(char_image.get_height() * char_scale))
+        )
+        char_img.set_alpha(char_alpha)
+        char_rect = char_img.get_rect(center=(WIDTH // 2, char_y))
+        screen.blit(char_img, char_rect)
+
+        # текст з друком
+        if text_index < len(text_str):
+            if pygame.time.get_ticks() % 3 == 0:
+                text_index += 1
+            text_display = text_str[:text_index]
+
+        text_surface = font_mid.render(text_display, True, (255, 255, 255))
+        screen.blit(text_surface, text_surface.get_rect(center=(WIDTH // 2, HEIGHT - 200)))
+
+        # іконка
+        if app_alpha < 255:
+            app_alpha += 5
+        app_img = app_image.copy()
+        app_img.set_alpha(app_alpha)
+        screen.blit(app_img, app_rect)
+
+        # кнопки fade-in
+        if btn_alpha < 255 and choice is None:
+            btn_alpha += 6
+
+        if btn_alpha > 0 and choice is None:
+            b1 = pygame.Surface(block_btn.size, pygame.SRCALPHA)
+            b1.fill((220, 50, 50, btn_alpha))
+            screen.blit(b1, block_btn.topleft)
+
+            b2 = pygame.Surface(unblock_btn.size, pygame.SRCALPHA)
+            b2.fill((50, 220, 80, btn_alpha))
+            screen.blit(b2, unblock_btn.topleft)
+
+            t1 = font_mid.render("Заблокувати", True, (255,255,255))
+            t2 = font_mid.render("Розблокувати", True, (255,255,255))
+            screen.blit(t1, t1.get_rect(center=block_btn.center))
+            screen.blit(t2, t2.get_rect(center=unblock_btn.center))
+
+        # після вибору
+        if choice:
+            btn_alpha -= 10
+
+            if choice == "block":
+                if app_alpha > 100:
+                    app_alpha -= 4
+            if char_y < HEIGHT + 200:
+                char_y += char_speed
+
+            if char_y >= HEIGHT + 200:
+                running = False
+
+        pygame.display.update()
+
+
 # ---------------- ЛОБІ ----------------
 def lobby():
     play_music("lobby_music.mp3")
@@ -112,7 +280,8 @@ def lobby():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_btn.collidepoint(event.pos):
-                    print("Гру почнемо пізніше 🙂")
+                    fake_loading()
+                    main_game()  # запускаємо сцену вибору
 
                 if credits_btn.collidepoint(event.pos):
                     credits()
@@ -184,11 +353,13 @@ def game_idea():
     play_music("idea_music.mp3")
 
     idea_text = [
-        "у UKRnadzor ви працюєте в офісі з кібер безпеці",
+        "у грі UKRnadzor ви працюєте в офісі з кібер безпеці",
         "",
-        "ви працюєте самим головним органом, ваші піддані вибирають додатки які можна заблокувати",
-        "але блокувати чи не чіпати додатки вирішувати вам, ваші рішення впливають на кінцівку",
-        "бажаю вам гарної гри",
+        "ви працюєте самим головним органом",
+        "ваші піддані вибирають додатки які можна заблокувати.",
+        "але блокувати чи не чіпати додатки вирішувати вам",
+        "ваші рішення впливають на кінцівку, будьте обережними",
+        "бажаю гарної гри",
     ]
 
     while True:
