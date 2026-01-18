@@ -1,6 +1,6 @@
 import pygame
 import sys
-
+import math
 # ---------------- НАЛАШТУВАННЯ ----------------
 WIDTH, HEIGHT = 800, 600
 FPS = 60
@@ -136,27 +136,74 @@ def fake_loading():
     pygame.mixer.music.set_volume(0.5)
 
 # ---------------- ПРОЛОГ ----------------
+# ---------------- ПРОЛОГ (MUSIC + WORD WRAP FIX) ----------------
 def prologue():
+    # ⛔ стопаємо музику лоббі
+    pygame.mixer.music.stop()
+
+    # 🎵 музика прологу
+    pygame.mixer.music.load("Prolog.mp3")
+    pygame.mixer.music.set_volume(0.6)
+    pygame.mixer.music.play(-1, fade_ms=1000)
+
     prolog_image = pygame.image.load("prolog.png").convert()
     prolog_image = pygame.transform.scale(prolog_image, (WIDTH, HEIGHT))
 
     texts = [
-        "Ви приходите на роботу як зазвичай.",
-        "На столі — нові заявки, нові рішення.",
-        "Кожне ваше рішення має наслідки.",
-        "Ви — остання інстанція.",
+        "я не думаю що приношу людям радість",
+        "з іншої сторони, я завів друзів..",
+        "чи хороших?.. вони просто приносять папки, а вечором просто прощаються",
+        "ЯЖ БОСС, вони повинні зі мною дружити, але чи хочуть вони цього?",
+        "чому мене не питають чого я хочу...",
+        "...",
+        "я хочу спокійного життя, а також ЩОБ ЦЕЙ СНІГ РОЗТАЯВ",
+        "**дивлюсь у вікно**",
+        "люди собі спокійно ходять по вулиці, а я тут сторчу і чекаю гену",
+        "Чи як його там звати... о, звук у двері, гена!",
         "Час починати."
     ]
 
     current_text = 0
     displayed_text = ""
     char_index = 0
-    typing_speed = 30  # менше = швидше
+
+    typing_speed = 35
     last_char_time = pygame.time.get_ticks()
 
     fade_alpha = 255
     fading_in = True
     fading_out = False
+
+    # ---- текстовий бокс ----
+    box_width = WIDTH - 120
+    box_height = 140
+    box_rect = pygame.Rect(
+        (WIDTH - box_width) // 2,
+        HEIGHT - box_height - 30,
+        box_width,
+        box_height
+    )
+
+    # ---- функція переносу тексту ----
+    def draw_wrapped_text(surface, text, rect, font, color):
+        words = text.split(" ")
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + word + " "
+            if font.size(test_line)[0] <= rect.width - 40:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word + " "
+        lines.append(current_line)
+
+        y = rect.top + 20
+        for line in lines:
+            txt_surface = font.render(line, True, color)
+            surface.blit(txt_surface, (rect.left + 20, y))
+            y += font.get_height() + 4
 
     running = True
     while running:
@@ -173,6 +220,7 @@ def prologue():
                         current_text += 1
                         displayed_text = ""
                         char_index = 0
+                        last_char_time = pygame.time.get_ticks()
                     else:
                         fading_out = True
 
@@ -191,12 +239,29 @@ def prologue():
                 char_index += 1
                 last_char_time = now
 
+        # фон
         screen.blit(prolog_image, (0, 0))
 
-        # текст внизу
-        text_surface = font_mid.render(displayed_text, True, (255, 255, 255))
-        text_rect = text_surface.get_rect(midbottom=(WIDTH // 2, HEIGHT - 40))
-        screen.blit(text_surface, text_rect)
+        # текстовий бокс
+        text_box = pygame.Surface(box_rect.size, pygame.SRCALPHA)
+        text_box.fill((0, 0, 0, 180))
+        pygame.draw.rect(
+            text_box,
+            (255, 255, 255, 40),
+            text_box.get_rect(),
+            2,
+            border_radius=16
+        )
+        screen.blit(text_box, box_rect.topleft)
+
+        # текст з переносом
+        draw_wrapped_text(
+            screen,
+            displayed_text,
+            box_rect,
+            font_mid,
+            (255, 255, 255)
+        )
 
         # fade overlay
         if fading_in or fading_out:
@@ -207,6 +272,7 @@ def prologue():
         if fading_out:
             fade_alpha += 10
             if fade_alpha >= 255:
+                pygame.mixer.music.fadeout(1000)
                 running = False
 
         pygame.display.update()
@@ -215,40 +281,195 @@ def prologue():
 def main_game():
     pygame.mixer.music.stop()
 
+    # ---------- ресурси ----------
+    dark_office = pygame.image.load("temnuiofis.png").convert()
+    dark_office = pygame.transform.scale(dark_office, (WIDTH, HEIGHT))
+
     bg_image = pygame.image.load("game_bg.png").convert()
     bg_image = pygame.transform.scale(bg_image, (WIDTH, HEIGHT))
 
     char_image = pygame.image.load("character.png").convert_alpha()
+    char_flip = pygame.transform.flip(char_image, True, False)
 
-    char_scale = 0.3
-    char_alpha = 0
-    char_y = HEIGHT + 80
-    char_target_y = HEIGHT // 2 - 50
-    char_speed = 4
+    char_sound = pygame.mixer.Sound("char_sound.mp3")
+    char_sound.set_volume(0.9)
 
-    app_image = pygame.image.load("app_icon.png").convert_alpha()
-    app_image = pygame.transform.scale(app_image, (100, 100))
-    app_alpha = 0
-    app_rect = app_image.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 70))
+    # ---------- анімований діалог ----------
+    def animated_dialog(text, name=None, bg=None, char_img=None, char_pos=None):
+        box_width = WIDTH - 120
+        box_height = 140
 
+        start_y = HEIGHT + box_height
+        target_y = HEIGHT - box_height - 30
+        box_y = start_y
+
+        displayed = ""
+        char_index = 0
+        typing_speed = 30
+        last_char = pygame.time.get_ticks()
+
+        finished_typing = False
+
+        while True:
+            clock.tick(FPS)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    if not finished_typing:
+                        displayed = text
+                        finished_typing = True
+                    else:
+                        return
+
+            if bg:
+                screen.blit(bg, (0, 0))
+            if char_img and char_pos:
+                screen.blit(char_img, char_pos)
+
+            if box_y > target_y:
+                box_y -= 12
+
+            if not finished_typing and box_y <= target_y:
+                now = pygame.time.get_ticks()
+                if now - last_char > typing_speed:
+                    if char_index < len(text):
+                        displayed += text[char_index]
+                        char_index += 1
+                        last_char = now
+                    else:
+                        finished_typing = True
+
+            box_rect = pygame.Rect(
+                (WIDTH - box_width) // 2,
+                box_y,
+                box_width,
+                box_height
+            )
+
+            box = pygame.Surface(box_rect.size, pygame.SRCALPHA)
+            box.fill((0, 0, 0, 180))
+            pygame.draw.rect(box, (255, 255, 255, 40), box.get_rect(), 2, border_radius=16)
+            screen.blit(box, box_rect.topleft)
+
+            if name:
+                name_surf = font_mid.render(name, True, (200, 200, 255))
+                screen.blit(name_surf, (box_rect.left + 20, box_rect.top - 28))
+
+            words = displayed.split(" ")
+            line = ""
+            y = box_rect.top + 20
+
+            for word in words:
+                test = line + word + " "
+                if font_mid.size(test)[0] <= box_rect.width - 40:
+                    line = test
+                else:
+                    screen.blit(font_mid.render(line, True, (255, 255, 255)),
+                                (box_rect.left + 20, y))
+                    y += font_mid.get_height() + 4
+                    line = word + " "
+
+            screen.blit(font_mid.render(line, True, (255, 255, 255)),
+                        (box_rect.left + 20, y))
+
+            pygame.display.update()
+
+    # ---------- затемнення ----------
+    fade = pygame.Surface((WIDTH, HEIGHT))
+    fade.fill((0, 0, 0))
+    for a in range(0, 255, 10):
+        screen.blit(fade, (0, 0))
+        fade.set_alpha(a)
+        pygame.display.update()
+        clock.tick(FPS)
+
+    # ---------- темний офіс ----------
+    screen.blit(dark_office, (0, 0))
+    pygame.display.update()
+    pygame.time.delay(1000)
+
+    # ---------- діалог Гени + звук ----------
+    char_sound.play()
+
+    animated_dialog(
+        "е блін, олександрович, включить світло",
+        name="Гена",
+        bg=dark_office
+    )
+
+    animated_dialog(
+        "я включу світло оке?",
+        name="Гена",
+        bg=dark_office
+    )
+
+    # ---------- світлий офіс ----------
+    screen.blit(bg_image, (0, 0))
+    pygame.display.update()
+    pygame.time.delay(500)
+
+    # ---------- вхід персонажа ----------
+    char_x = WIDTH + 120
+    char_y = HEIGHT // 2 + 20
+    target_x = WIDTH // 2 - 50
+    walk_phase = 0
+
+    while char_x > target_x:
+        clock.tick(FPS)
+        screen.blit(bg_image, (0, 0))
+
+        walk_phase += 0.15
+        offset_y = int(8 * math.sin(walk_phase))
+
+        char_x -= 4
+        screen.blit(char_image, (char_x, char_y + offset_y))
+        pygame.display.update()
+
+    # ---------- фінальний діалог ----------
+    animated_dialog(
+        "от він і прийшов, надіюсь багато запитань небуде ставити як завжди",
+        bg=bg_image,
+        char_img=char_image,
+        char_pos=(char_x, char_y)
+    )
+
+    animated_dialog(
+        "короче, папку сюди кладу, цей список робили 2 безсонних ночі, ну короче, чао какао",
+        name="Гена",
+        bg=bg_image,
+        char_img=char_image,
+        char_pos=(char_x, char_y)
+    )
+
+    # ---------- вихід Гени (більший і далі) ----------
+    scale = 1.3
+    big_char = pygame.transform.scale(
+        char_flip,
+        (int(char_flip.get_width() * scale),
+         int(char_flip.get_height() * scale))
+    )
+
+    target_x = WIDTH + 300
+    while char_x < target_x:
+        clock.tick(FPS)
+        screen.blit(bg_image, (0, 0))
+
+        walk_phase += 0.15
+        offset_y = int(10 * math.sin(walk_phase))
+
+        char_x += 5
+        screen.blit(big_char, (char_x, char_y + offset_y))
+        pygame.display.update()
+
+    # ---------- вибір ----------
+    choice = None
     block_btn = pygame.Rect(WIDTH // 2 - 170, HEIGHT - 120, 150, 55)
     unblock_btn = pygame.Rect(WIDTH // 2 + 20, HEIGHT - 120, 150, 55)
 
-    btn_alpha = 0
-
-    text_str = "Заблокувати цей додаток?"
-    text_display = ""
-    text_index = 0
-
-    char_sound = pygame.mixer.Sound("char_sound.mp3")
-    char_sound.set_volume(1.0)
-
-    start_ticks = pygame.time.get_ticks()
-    sound_played = False
-    choice = None
-
-    running = True
-    while running:
+    while choice is None:
         clock.tick(FPS)
         screen.blit(bg_image, (0, 0))
 
@@ -256,71 +477,19 @@ def main_game():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-            if event.type == pygame.MOUSEBUTTONDOWN and choice is None:
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 if block_btn.collidepoint(event.pos):
                     choice = "block"
                 if unblock_btn.collidepoint(event.pos):
                     choice = "unblock"
 
-        if not sound_played and pygame.time.get_ticks() - start_ticks > 3000:
-            char_sound.play()
-            sound_played = True
+        pygame.draw.rect(screen, (200, 50, 50), block_btn, border_radius=8)
+        pygame.draw.rect(screen, (50, 200, 80), unblock_btn, border_radius=8)
 
-        if char_alpha < 255:
-            char_alpha += 5
-        if char_scale < 1:
-            char_scale += 0.01
-        if char_y > char_target_y:
-            char_y -= char_speed
-
-        char_img = pygame.transform.scale(
-            char_image,
-            (int(char_image.get_width() * char_scale),
-             int(char_image.get_height() * char_scale))
-        )
-        char_img.set_alpha(char_alpha)
-        screen.blit(char_img, char_img.get_rect(center=(WIDTH // 2, char_y)))
-
-        if text_index < len(text_str):
-            if pygame.time.get_ticks() % 3 == 0:
-                text_index += 1
-            text_display = text_str[:text_index]
-
-        screen.blit(
-            font_mid.render(text_display, True, (255, 255, 255)),
-            font_mid.render(text_display, True, (255, 255, 255)).get_rect(center=(WIDTH // 2, HEIGHT - 200))
-        )
-
-        if app_alpha < 255:
-            app_alpha += 5
-        app_img = app_image.copy()
-        app_img.set_alpha(app_alpha)
-        screen.blit(app_img, app_rect)
-
-        if btn_alpha < 255 and choice is None:
-            btn_alpha += 6
-            btn_alpha = min(255, btn_alpha)
-
-        if btn_alpha > 0 and choice is None:
-            b1 = pygame.Surface(block_btn.size, pygame.SRCALPHA)
-            b1.fill((220, 50, 50, btn_alpha))
-            screen.blit(b1, block_btn.topleft)
-
-            b2 = pygame.Surface(unblock_btn.size, pygame.SRCALPHA)
-            b2.fill((50, 220, 80, btn_alpha))
-            screen.blit(b2, unblock_btn.topleft)
-
-            screen.blit(font_mid.render("Заблокувати", True, (255,255,255)),
-                        font_mid.render("Заблокувати", True, (255,255,255)).get_rect(center=block_btn.center))
-            screen.blit(font_mid.render("Розблокувати", True, (255,255,255)),
-                        font_mid.render("Розблокувати", True, (255,255,255)).get_rect(center=unblock_btn.center))
-
-        if choice:
-            btn_alpha = max(0, btn_alpha - 10)
-            char_y += char_speed
-            if char_y >= HEIGHT + 200:
-                running = False
+        screen.blit(font_mid.render("Заблокувати", True, (255,255,255)),
+                    font_mid.render("Заблокувати", True, (255,255,255)).get_rect(center=block_btn.center))
+        screen.blit(font_mid.render("Розблокувати", True, (255,255,255)),
+                    font_mid.render("Розблокувати", True, (255,255,255)).get_rect(center=unblock_btn.center))
 
         pygame.display.update()
 
