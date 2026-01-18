@@ -80,8 +80,8 @@ def intro():
 
         if fade_in:
             alpha += 5
-            if alpha >= 255:
-                alpha = 255
+            alpha = min(255, alpha)
+            if alpha == 255:
                 fade_in = False
                 hold_start = pygame.time.get_ticks()
         else:
@@ -96,18 +96,17 @@ def intro():
 
 # ---------------- ФАЛЬШИВА ЗАГРУЗКА ----------------
 def fake_loading():
-    load_time = 3000  # загальна тривалість фальшивої загрузки в мс
+    load_time = 3000
     bar_width = 400
     bar_height = 30
     bar_x = (WIDTH - bar_width) // 2
     bar_y = HEIGHT // 2
     start_ticks = pygame.time.get_ticks()
 
-    # Зменшуємо гучність музики головного меню
-    for i in range(50):
+    for _ in range(50):
         vol = pygame.mixer.music.get_volume()
         pygame.mixer.music.set_volume(max(0, vol - 0.02))
-        pygame.time.delay(20)  # плавне убавлення гучності
+        pygame.time.delay(20)
 
     running = True
     while running:
@@ -125,6 +124,7 @@ def fake_loading():
 
         pygame.draw.rect(screen, (50, 50, 50), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, int(bar_width * progress), bar_height))
+
         txt = font_mid.render(f"{percent}%", True, (255, 255, 255))
         screen.blit(txt, txt.get_rect(center=(WIDTH // 2, bar_y - 40)))
 
@@ -135,9 +135,85 @@ def fake_loading():
 
     pygame.mixer.music.set_volume(0.5)
 
-# ---------------- ОСНОВНИЙ ЦИКЛ ГРИ (1 вибір) ----------------
+# ---------------- ПРОЛОГ ----------------
+def prologue():
+    prolog_image = pygame.image.load("prolog.png").convert()
+    prolog_image = pygame.transform.scale(prolog_image, (WIDTH, HEIGHT))
+
+    texts = [
+        "Ви приходите на роботу як зазвичай.",
+        "На столі — нові заявки, нові рішення.",
+        "Кожне ваше рішення має наслідки.",
+        "Ви — остання інстанція.",
+        "Час починати."
+    ]
+
+    current_text = 0
+    displayed_text = ""
+    char_index = 0
+    typing_speed = 30  # менше = швидше
+    last_char_time = pygame.time.get_ticks()
+
+    fade_alpha = 255
+    fading_in = True
+    fading_out = False
+
+    running = True
+    while running:
+        clock.tick(FPS)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if char_index >= len(texts[current_text]):
+                    if current_text < len(texts) - 1:
+                        current_text += 1
+                        displayed_text = ""
+                        char_index = 0
+                    else:
+                        fading_out = True
+
+        # fade in
+        if fading_in:
+            fade_alpha -= 8
+            if fade_alpha <= 0:
+                fade_alpha = 0
+                fading_in = False
+
+        # typing effect
+        if not fading_out and char_index < len(texts[current_text]):
+            now = pygame.time.get_ticks()
+            if now - last_char_time > typing_speed:
+                displayed_text += texts[current_text][char_index]
+                char_index += 1
+                last_char_time = now
+
+        screen.blit(prolog_image, (0, 0))
+
+        # текст внизу
+        text_surface = font_mid.render(displayed_text, True, (255, 255, 255))
+        text_rect = text_surface.get_rect(midbottom=(WIDTH // 2, HEIGHT - 40))
+        screen.blit(text_surface, text_rect)
+
+        # fade overlay
+        if fading_in or fading_out:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, fade_alpha))
+            screen.blit(overlay, (0, 0))
+
+        if fading_out:
+            fade_alpha += 10
+            if fade_alpha >= 255:
+                running = False
+
+        pygame.display.update()
+
+# ---------------- ОСНОВНИЙ ЦИКЛ ГРИ ----------------
 def main_game():
-    pygame.mixer.music.stop()  # музика лобі більше не грає
+    pygame.mixer.music.stop()
 
     bg_image = pygame.image.load("game_bg.png").convert()
     bg_image = pygame.transform.scale(bg_image, (WIDTH, HEIGHT))
@@ -170,7 +246,6 @@ def main_game():
     start_ticks = pygame.time.get_ticks()
     sound_played = False
     choice = None
-    choice_ticks = 0
 
     running = True
     while running:
@@ -185,17 +260,13 @@ def main_game():
             if event.type == pygame.MOUSEBUTTONDOWN and choice is None:
                 if block_btn.collidepoint(event.pos):
                     choice = "block"
-                    choice_ticks = pygame.time.get_ticks()
                 if unblock_btn.collidepoint(event.pos):
                     choice = "unblock"
-                    choice_ticks = pygame.time.get_ticks()
 
-        # звук через 3 сек
         if not sound_played and pygame.time.get_ticks() - start_ticks > 3000:
             char_sound.play()
             sound_played = True
 
-        # персонаж — поява і збільшення
         if char_alpha < 255:
             char_alpha += 5
         if char_scale < 1:
@@ -209,28 +280,27 @@ def main_game():
              int(char_image.get_height() * char_scale))
         )
         char_img.set_alpha(char_alpha)
-        char_rect = char_img.get_rect(center=(WIDTH // 2, char_y))
-        screen.blit(char_img, char_rect)
+        screen.blit(char_img, char_img.get_rect(center=(WIDTH // 2, char_y)))
 
-        # текст з друком
         if text_index < len(text_str):
             if pygame.time.get_ticks() % 3 == 0:
                 text_index += 1
             text_display = text_str[:text_index]
 
-        text_surface = font_mid.render(text_display, True, (255, 255, 255))
-        screen.blit(text_surface, text_surface.get_rect(center=(WIDTH // 2, HEIGHT - 200)))
+        screen.blit(
+            font_mid.render(text_display, True, (255, 255, 255)),
+            font_mid.render(text_display, True, (255, 255, 255)).get_rect(center=(WIDTH // 2, HEIGHT - 200))
+        )
 
-        # іконка
         if app_alpha < 255:
             app_alpha += 5
         app_img = app_image.copy()
         app_img.set_alpha(app_alpha)
         screen.blit(app_img, app_rect)
 
-        # кнопки fade-in
         if btn_alpha < 255 and choice is None:
             btn_alpha += 6
+            btn_alpha = min(255, btn_alpha)
 
         if btn_alpha > 0 and choice is None:
             b1 = pygame.Surface(block_btn.size, pygame.SRCALPHA)
@@ -241,26 +311,18 @@ def main_game():
             b2.fill((50, 220, 80, btn_alpha))
             screen.blit(b2, unblock_btn.topleft)
 
-            t1 = font_mid.render("Заблокувати", True, (255,255,255))
-            t2 = font_mid.render("Розблокувати", True, (255,255,255))
-            screen.blit(t1, t1.get_rect(center=block_btn.center))
-            screen.blit(t2, t2.get_rect(center=unblock_btn.center))
+            screen.blit(font_mid.render("Заблокувати", True, (255,255,255)),
+                        font_mid.render("Заблокувати", True, (255,255,255)).get_rect(center=block_btn.center))
+            screen.blit(font_mid.render("Розблокувати", True, (255,255,255)),
+                        font_mid.render("Розблокувати", True, (255,255,255)).get_rect(center=unblock_btn.center))
 
-        # після вибору
         if choice:
-            btn_alpha -= 10
-
-            if choice == "block":
-                if app_alpha > 100:
-                    app_alpha -= 4
-            if char_y < HEIGHT + 200:
-                char_y += char_speed
-
+            btn_alpha = max(0, btn_alpha - 10)
+            char_y += char_speed
             if char_y >= HEIGHT + 200:
                 running = False
 
         pygame.display.update()
-
 
 # ---------------- ЛОБІ ----------------
 def lobby():
@@ -281,7 +343,8 @@ def lobby():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_btn.collidepoint(event.pos):
                     fake_loading()
-                    main_game()  # запускаємо сцену вибору
+                    prologue()        # запуск прологу
+                    main_game()       # після прологу геймплей
 
                 if credits_btn.collidepoint(event.pos):
                     credits()
@@ -292,15 +355,13 @@ def lobby():
                     play_music("lobby_music.mp3")
 
         screen.blit(lobby_bg, (0, 0))
-
         draw_button(start_btn, "Почати гру")
         draw_button(credits_btn, "Титри")
         draw_button(idea_btn, "Задумка гри")
 
         if fade:
-            overlay = pygame.Surface((WIDTH, HEIGHT))
-            overlay.fill((0, 0, 0))
-            overlay.set_alpha(alpha)
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, alpha))
             screen.blit(overlay, (0, 0))
 
             if pygame.time.get_ticks() - fade_start > 1000:
@@ -332,13 +393,11 @@ def credits():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if back_btn.collidepoint(event.pos):
                     return
 
         screen.fill((0, 0, 0))
-
         y = 120
         for line in credits_text:
             txt = font_mid.render(line, True, (255, 255, 255))
@@ -369,13 +428,11 @@ def game_idea():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if back_btn.collidepoint(event.pos):
                     return
 
         screen.fill((0, 0, 0))
-
         y = 120
         for line in idea_text:
             txt = font_mid.render(line, True, (255, 255, 255))
