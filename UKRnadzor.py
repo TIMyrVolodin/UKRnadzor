@@ -21,6 +21,7 @@ pygame.display.set_caption("UKRnadzor game")
 clock = pygame.time.Clock()
 
 # ---------------- ШРИФТИ ----------------
+font_huge = pygame.font.SysFont("arial", 64)  # Більший шрифт для заголовка
 font_big = pygame.font.SysFont("arial", 48)
 font_mid = pygame.font.SysFont("arial", 36)
 font_small = pygame.font.SysFont("arial", 22)
@@ -45,10 +46,11 @@ def draw_button(rect, text):
     txt = font_mid.render(text, True, (255, 255, 255))
     screen.blit(txt, txt.get_rect(center=rect.center))
 
-start_btn = pygame.Rect(300, 350, 200, 50)
-settings_btn = pygame.Rect(300, 420, 200, 50)
-credits_btn = pygame.Rect(300, 490, 200, 50)
-idea_btn = pygame.Rect(300, 560, 200, 50)
+# Змінені координати кнопок (вище)
+start_btn = pygame.Rect(300, 320, 200, 50)
+settings_btn = pygame.Rect(300, 390, 200, 50)
+credits_btn = pygame.Rect(300, 460, 200, 50)
+idea_btn = pygame.Rect(300, 530, 200, 50)
 back_btn = pygame.Rect(300, 500, 200, 50)
 
 # ---------------- НАЛАШТУВАННЯ ----------------
@@ -177,17 +179,17 @@ def lobby_fade():
         clock.tick(FPS)
         screen.blit(lobby_bg, (0, 0))
         
-        # Тексти лобі
-        title1 = font_big.render("Selection protocol", True, (255, 215, 0))
-        title1_shadow = font_big.render("Selection protocol", True, (128, 107, 0))
+        # Тексти лобі з більшим заголовком
+        title1 = font_huge.render("Selection protocol", True, (255, 215, 0))
+        title1_shadow = font_huge.render("Selection protocol", True, (128, 107, 0))
         title2 = font_mid.render("темна історія UKRnadzor", True, (200, 200, 200))
         
         # Тінь для заголовка
-        screen.blit(title1_shadow, (WIDTH//2 - title1.get_width()//2 + 3, 103))
-        screen.blit(title1, (WIDTH//2 - title1.get_width()//2, 100))
-        screen.blit(title2, title2.get_rect(center=(WIDTH//2, 160)))
+        screen.blit(title1_shadow, (WIDTH//2 - title1.get_width()//2 + 4, 94))
+        screen.blit(title1, (WIDTH//2 - title1.get_width()//2, 90))
+        screen.blit(title2, title2.get_rect(center=(WIDTH//2, 170)))
         
-        # Кнопки
+        # Кнопки (зміщені вище)
         draw_button(start_btn, "Почати гру")
         draw_button(settings_btn, "Налаштування")
         draw_button(credits_btn, "Титри")
@@ -212,6 +214,9 @@ def fake_loading():
     progress = 0
     current_text = 0
     dot_animation = 0
+    
+    # Підказка під час завантаження
+    hint_text = font_small.render("Підказка: Натисніть SPACE для пришвидшення", True, (150, 150, 150))
     
     while progress < 100:
         clock.tick(30)
@@ -248,9 +253,8 @@ def fake_loading():
         percent_text = font_mid.render(f"{progress}%", True, (255, 255, 255))
         screen.blit(percent_text, percent_text.get_rect(center=(WIDTH//2, bar_y + bar_height + 20)))
         
-        # Підказка
-        hint = font_small.render("Натисніть SPACE для пришвидшення", True, (150, 150, 150))
-        screen.blit(hint, hint.get_rect(center=(WIDTH//2, HEIGHT - 50)))
+        # Підказка знизу
+        screen.blit(hint_text, hint_text.get_rect(center=(WIDTH//2, HEIGHT - 50)))
         
         pygame.display.update()
         
@@ -364,7 +368,7 @@ def prologue():
         button_height - 10
     )
     
-    # Підказка для першої репліки
+    # Підказка для першої репліки (меркотлива)
     show_hint = True
     hint_alpha = 255
     hint_blink = 0
@@ -682,8 +686,9 @@ def main_game():
     pygame.time.delay(500)
 
     # ---------- вхід персонажа ----------
+    # Змінюємо позицію Гени (вище по екрану)
     char_x = WIDTH + 120
-    char_y = HEIGHT // 2 + 20
+    char_y = HEIGHT // 3  # Зміна: було // 2 + 20, стало // 3
     target_x = WIDTH // 2 - 50
     walk_phase = 0
 
@@ -734,70 +739,108 @@ def main_game():
         screen.blit(big_char, (char_x, char_y + offset_y))
         pygame.display.update()
 
-    # ---------- вибір ----------
-    choice = None
-    block_btn = pygame.Rect(WIDTH // 2 - 170, HEIGHT - 120, 150, 55)
-    unblock_btn = pygame.Rect(WIDTH // 2 + 20, HEIGHT - 120, 150, 55)
-
-    while choice is None:
-        clock.tick(FPS)
-        screen.blit(bg_image, (0, 0))
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if block_btn.collidepoint(event.pos):
-                    choice = "block"
-                if unblock_btn.collidepoint(event.pos):
-                    choice = "unblock"
-
-        pygame.draw.rect(screen, (200, 50, 50), block_btn, border_radius=8)
-        pygame.draw.rect(screen, (50, 200, 80), unblock_btn, border_radius=8)
-
-        block_text = font_mid.render("Заблокувати", True, (255, 255, 255))
-        screen.blit(block_text, block_text.get_rect(center=block_btn.center))
-        
-        unblock_text = font_mid.render("Розблокувати", True, (255, 255, 255))
-        screen.blit(unblock_text, unblock_text.get_rect(center=unblock_btn.center))
-
-        pygame.display.update()
-    
-    # Після вибору - запускаємо геймплей з папкою
+    # Запускаємо геймплей з папкою замість простого вибору
     gameplay_folder()
 
 # ---------------- ГЕЙМПЛЕЙ З ПАПКОЮ ----------------
+# ---------------- ГЕЙМПЛЕЙ З ПАПКОЮ ----------------
 def gameplay_folder():
-    # Створюємо нову музику для геймплею або використовуємо існуючу
+    # Музика для геймплею
     play_music("game_bg.mp3", fade_ms=1500)
     
-    # Параметри додатку
-    app_name = "Telegram"
-    app_description = "Месенджер з шифруванням. Використовується для комунікації, але також може бути використаний для поширення неперевіреної інформації."
-    popularity = 85  # Шкала згоди народу (0-100)
-    respect = 60     # Шкала поваги підлеглих (0-100)
+    # Завантажуємо фон офісу
+    try:
+        office_bg = pygame.image.load("game_bg.png").convert()
+        office_bg = pygame.transform.scale(office_bg, (WIDTH, HEIGHT))
+    except:
+        # Якщо картинки немає, створюємо простий фон
+        office_bg = pygame.Surface((WIDTH, HEIGHT))
+        office_bg.fill((180, 190, 210))
     
-    # Кнопки
+    # Завантажуємо іконку додатка
+    try:
+        app_icon = pygame.image.load("app_icon.png").convert_alpha()
+        app_icon = pygame.transform.scale(app_icon, (80, 80))
+    except:
+        # Якщо картинки немає, створюємо просту іконку
+        app_icon = pygame.Surface((80, 80), pygame.SRCALPHA)
+        pygame.draw.rect(app_icon, (255, 0, 0), (0, 0, 80, 80), border_radius=15)
+        text = font_small.render("YT", True, (255, 255, 255))
+        app_icon.blit(text, text.get_rect(center=(40, 40)))
+    
+    # Звук для кнопки розблокування
+    try:
+        happy_sound = pygame.mixer.Sound("happypeaple.mp3")
+        happy_sound.set_volume(0.3)
+        sound_played = False
+    except:
+        happy_sound = None
+        sound_played = False
+    
+    # Параметри додатку (YouTube) - оновлені значення
+    app_name = "YouTube"
+    app_description = "Відеохостинг з мільйонами користувачів. Містить як корисний контент, так і потенційно небезпечні матеріали."
+    popularity = 5  # Змінено: було 92, стало 5
+    respect = 20    # Змінено: було 45, стало 20
+    
+    # Монолог головного героя
+    monologue_texts = [
+        "О... папка від Гени. Що там у нього цього разу?",
+        "YouTube... Цей додаток розповсюджує забагато незалежних думок.",
+        "Люди проводять там години, замість того щоб працювати.",
+        "Але з іншого боку... він дуже популярний серед народу.",
+        "Підлеглі теж ним часто користуються..."
+    ]
+    
+    current_monologue = 0
+    displayed_monologue = ""
+    char_index = 0
+    typing_speed = 30
+    last_char_time = pygame.time.get_ticks()
+    
+    # Кнопки (відносні позиції до папки)
     help_btn = pygame.Rect(WIDTH - 120, 20, 100, 40)
-    block_btn = pygame.Rect(WIDTH//2 - 100, 450, 180, 50)
-    unblock_btn = pygame.Rect(WIDTH//2 + 100, 450, 180, 50)
+    block_btn = pygame.Rect(0, 0, 180, 50)  # Буде оновлено пізніше
+    unblock_btn = pygame.Rect(0, 0, 180, 50)  # Буде оновлено пізніше
     
     # Стан довідки
     show_help = False
     
-    # Стан наведення на кнопку блокування
+    # Стан наведення на кнопки
     hover_block = False
+    hover_unblock = False
     flicker_timer = 0
     
-    # Репліки для допомоги
-    advice_texts = [
-        "Цей додаток дуже популярний серед молоді.",
-        "Блокування може викликати негативну реакцію.",
-        "Підлеглі часто користуються цим додатком.",
-        "Розгляньте альтернативні заходи контролю."
-    ]
-    current_advice = 0
+    # Анімація появи папки
+    folder_y = HEIGHT + 200  # Початкова позиція (поза екраном)
+    folder_target_y = 80     # Кінцева позиція
+    folder_speed = 15
+    
+    # Папка розміри (зменшені)
+    folder_width = 500  # Зменшено: було WIDTH - 250, стало 500
+    folder_height = 400  # Зменшено: було HEIGHT - 220, стало 400
+    
+    # Анімація діалогового бокса
+    dialog_box_height = 140
+    dialog_box_y = HEIGHT + dialog_box_height  # Початкова позиція
+    dialog_box_target_y = HEIGHT - dialog_box_height - 30
+    dialog_box_speed = 12
+    dialog_box_visible = False
+    dialog_box_finished = False
+    
+    # Анімація кнопок вибору
+    buttons_y = HEIGHT + 100
+    buttons_target_y = HEIGHT - 120
+    buttons_visible = False
+    buttons_speed = 10
+    
+    # Стани гри
+    STATE_FOLDER_APPEARING = 0
+    STATE_MONOLOGUE = 1
+    STATE_CHOICE = 2
+    STATE_FOLDER_HIDING = 3
+    
+    current_state = STATE_FOLDER_APPEARING
     
     running = True
     while running:
@@ -810,36 +853,96 @@ def gameplay_folder():
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if help_btn.collidepoint(event.pos):
-                    show_help = not show_help
+                    show_help = not show_help  # Перемикання стану по тій же кнопці
                 
-                if block_btn.collidepoint(event.pos):
-                    # Ефект меркотіння перед блокуванням
-                    for i in range(10):
-                        flicker_timer = i * 5
-                        screen.fill((0, 0, 0) if i % 2 == 0 else (50, 0, 0))
-                        pygame.display.update()
-                        pygame.time.delay(50)
+                if current_state == STATE_CHOICE:
+                    if block_btn.collidepoint(event.pos):
+                        current_state = STATE_FOLDER_HIDING
                     
-                    # Повернення в лобі
-                    play_music("lobby_music.mp3")
-                    return
-                
-                if unblock_btn.collidepoint(event.pos):
-                    # Повернення в лобі
-                    play_music("lobby_music.mp3")
-                    return
+                    if unblock_btn.collidepoint(event.pos):
+                        current_state = STATE_FOLDER_HIDING
+            
+            if event.type == pygame.KEYDOWN:
+                if current_state == STATE_MONOLOGUE and event.key == pygame.K_SPACE:
+                    if char_index < len(monologue_texts[current_monologue]):
+                        # Швидко показати поточну репліку
+                        displayed_monologue = monologue_texts[current_monologue]
+                        char_index = len(displayed_monologue)
+                    else:
+                        # Перейти до наступної репліки або завершити монолог
+                        if current_monologue < len(monologue_texts) - 1:
+                            current_monologue += 1
+                            displayed_monologue = ""
+                            char_index = 0
+                            last_char_time = pygame.time.get_ticks()
+                        else:
+                            # Завершити монолог і перейти до вибору
+                            current_state = STATE_CHOICE
+                            dialog_box_visible = False
+                            buttons_visible = True
             
             if event.type == pygame.MOUSEMOTION:
                 hover_block = block_btn.collidepoint(event.pos)
+                hover_unblock = unblock_btn.collidepoint(event.pos)
+                
+                # Відтворити звук при наведенні на кнопку розблокування
+                if hover_unblock and happy_sound and not sound_played and current_state == STATE_CHOICE:
+                    happy_sound.play()
+                    sound_played = True
+                elif not hover_unblock:
+                    sound_played = False
         
         # Анімація меркотіння
         flicker_timer += 1
         
-        # Фон
-        screen.fill((30, 30, 40))
+        # Фон - освітлений офіс
+        screen.blit(office_bg, (0, 0))
         
-        # Малюємо папку
-        folder_rect = pygame.Rect(100, 80, WIDTH-200, HEIGHT-160)
+        # Обробка станів гри
+        if current_state == STATE_FOLDER_APPEARING:
+            # Анімація появи папки
+            if folder_y > folder_target_y:
+                folder_y -= folder_speed
+                if folder_y < folder_target_y:
+                    folder_y = folder_target_y
+            else:
+                # Папка з'явилась, починаємо монолог
+                current_state = STATE_MONOLOGUE
+                dialog_box_visible = True
+        
+        elif current_state == STATE_MONOLOGUE:
+            # Анімація появи діалогового бокса
+            if dialog_box_y > dialog_box_target_y:
+                dialog_box_y -= dialog_box_speed
+            
+            # Друк тексту монолога
+            if not dialog_box_finished and char_index < len(monologue_texts[current_monologue]):
+                now = pygame.time.get_ticks()
+                if now - last_char_time > typing_speed:
+                    displayed_monologue += monologue_texts[current_monologue][char_index]
+                    char_index += 1
+                    last_char_time = now
+        
+        elif current_state == STATE_CHOICE:
+            # Анімація появи кнопок
+            if buttons_y > buttons_target_y:
+                buttons_y -= buttons_speed
+        
+        elif current_state == STATE_FOLDER_HIDING:
+            # Анімація зникнення папки
+            folder_y += folder_speed
+            if dialog_box_y < HEIGHT + dialog_box_height:
+                dialog_box_y += dialog_box_speed
+            if buttons_y < HEIGHT + 100:
+                buttons_y += buttons_speed
+            
+            if folder_y > HEIGHT + 200:
+                # Повернення в лобі
+                play_music("lobby_music.mp3")
+                return
+        
+        # Малюємо папку (зменшену)
+        folder_rect = pygame.Rect((WIDTH - folder_width) // 2, int(folder_y), folder_width, folder_height)
         pygame.draw.rect(screen, (100, 80, 50), folder_rect, border_radius=15)
         pygame.draw.rect(screen, (120, 100, 60), folder_rect, 3, border_radius=15)
         
@@ -848,22 +951,28 @@ def gameplay_folder():
         pygame.draw.rect(screen, (240, 230, 210), inner_rect, border_radius=10)
         pygame.draw.rect(screen, (200, 190, 170), inner_rect, 2, border_radius=10)
         
-        # Текст "ПАПКА" на класічній вкладці
+        # Текст "ПАПКА" на класичній вкладці
         tab_rect = pygame.Rect(folder_rect.x + 30, folder_rect.y - 15, 100, 30)
         pygame.draw.rect(screen, (150, 130, 100), tab_rect, border_radius=5)
         pygame.draw.rect(screen, (180, 160, 130), tab_rect, 2, border_radius=5)
         tab_text = font_small.render("ПАПКА", True, (255, 255, 255))
         screen.blit(tab_text, tab_text.get_rect(center=tab_rect.center))
         
-        # Іконка додатка (симуляція, якщо немає картинки)
+        # Іконка додатка
         icon_rect = pygame.Rect(inner_rect.x + 30, inner_rect.y + 30, 80, 80)
-        pygame.draw.rect(screen, (0, 150, 200), icon_rect, border_radius=15)
+        screen.blit(app_icon, icon_rect)
         
-        # "Скоч" на іконці
-        tape_rect = pygame.Rect(icon_rect.x - 5, icon_rect.y + 60, 90, 20)
-        pygame.draw.rect(screen, (200, 50, 50), tape_rect, border_radius=3)
-        tape_text = font_very_small.render("СКОЧ", True, (255, 255, 255))
-        screen.blit(tape_text, tape_text.get_rect(center=tape_rect.center))
+        # "Скоч" на іконці (навскіс, напівпрозорий)
+        tape_surface = pygame.Surface((100, 25), pygame.SRCALPHA)
+        pygame.draw.rect(tape_surface, (200, 50, 50, 180), (0, 0, 100, 25), border_radius=3)
+        tape_text = font_very_small.render("СКОЛ", True, (255, 255, 255))
+        tape_text.set_alpha(200)
+        tape_surface.blit(tape_text, tape_text.get_rect(center=(50, 12)))
+        
+        # Повертаємо скоч на 30 градусів
+        rotated_tape = pygame.transform.rotate(tape_surface, 30)
+        tape_pos = (icon_rect.x + 10, icon_rect.y + 10)
+        screen.blit(rotated_tape, tape_pos)
         
         # Назва додатка
         app_title = font_big.render(app_name, True, (30, 30, 30))
@@ -893,98 +1002,165 @@ def gameplay_folder():
             screen.blit(line_surface, (desc_rect.x + 10, y))
             y += font_small.get_height() + 2
         
-        # Шкали параметрів
+        # Шкали параметрів (змінені координати)
+        param_start_y = inner_rect.y + 250
+        param_bar_width = 250  # Зменшено для кращого розміщення
+        param_bar_height = 20  # Зменшено висоту
+        
         # Шкала згоди народу
-        pygame.draw.rect(screen, (200, 200, 200), (inner_rect.x + 30, inner_rect.y + 250, 300, 25), border_radius=5)
-        pygame.draw.rect(screen, (50, 150, 50), (inner_rect.x + 30, inner_rect.y + 250, int(300 * popularity/100), 25), border_radius=5)
-        pop_text = font_small.render(f"Згода народу: {popularity}%", True, (30, 30, 30))
-        screen.blit(pop_text, (inner_rect.x + 340, inner_rect.y + 252))
+        pop_bar_x = inner_rect.x + 30
+        pop_bar_y = param_start_y
+        
+        pygame.draw.rect(screen, (200, 200, 200), (pop_bar_x, pop_bar_y, param_bar_width, param_bar_height), border_radius=5)
+        pygame.draw.rect(screen, (50, 150, 50), (pop_bar_x, pop_bar_y, int(param_bar_width * popularity/100), param_bar_height), border_radius=5)
+        
+        # Текст відсотків згоди народу (не виходить за рамки)
+        pop_text = font_very_small.render(f"Згода народу: {popularity}%", True, (30, 30, 30))
+        pop_text_width = pop_text.get_width()
+        
+        # Перевіряємо, чи текст виходить за рамки
+        if pop_bar_x + param_bar_width + pop_text_width + 10 > inner_rect.right:
+            # Якщо виходить, зменшуємо шрифт ще більше
+            pop_text = pygame.font.SysFont("arial", 14).render(f"Згода народу: {popularity}%", True, (30, 30, 30))
+        
+        screen.blit(pop_text, (pop_bar_x + param_bar_width + 5, pop_bar_y))
         
         # Шкала поваги підлеглих
-        pygame.draw.rect(screen, (200, 200, 200), (inner_rect.x + 30, inner_rect.y + 290, 300, 25), border_radius=5)
-        pygame.draw.rect(screen, (50, 100, 200), (inner_rect.x + 30, inner_rect.y + 290, int(300 * respect/100), 25), border_radius=5)
-        res_text = font_small.render(f"Повага підлеглих: {respect}%", True, (30, 30, 30))
-        screen.blit(res_text, (inner_rect.x + 340, inner_rect.y + 292))
+        res_bar_y = param_start_y + 35
         
-        # Кнопки дій
-        # Кнопка "Заблокувати" з ефектом наведення
-        block_color = (200, 50, 50) if not hover_block else (220, 70, 70)
-        pygame.draw.rect(screen, block_color, block_btn, border_radius=8)
-        pygame.draw.rect(screen, (150, 30, 30), block_btn, 2, border_radius=8)
-        block_text = font_mid.render("Заблокувати", True, (255, 255, 255))
-        screen.blit(block_text, block_text.get_rect(center=block_btn.center))
+        pygame.draw.rect(screen, (200, 200, 200), (pop_bar_x, res_bar_y, param_bar_width, param_bar_height), border_radius=5)
+        pygame.draw.rect(screen, (50, 100, 200), (pop_bar_x, res_bar_y, int(param_bar_width * respect/100), param_bar_height), border_radius=5)
         
-        # Кнопка "Розблокувати"
-        pygame.draw.rect(screen, (50, 180, 80), unblock_btn, border_radius=8)
-        pygame.draw.rect(screen, (30, 150, 60), unblock_btn, 2, border_radius=8)
-        unblock_text = font_mid.render("Розблокувати", True, (255, 255, 255))
-        screen.blit(unblock_text, unblock_text.get_rect(center=unblock_btn.center))
+        # Текст відсотків поваги підлеглих (не виходить за рамки)
+        res_text = font_very_small.render(f"Повага підлеглих: {respect}%", True, (30, 30, 30))
+        res_text_width = res_text.get_width()
         
-        # Кнопка "Довідка"
-        pygame.draw.rect(screen, (70, 70, 150), help_btn, border_radius=6)
-        pygame.draw.rect(screen, (100, 100, 200), help_btn, 2, border_radius=6)
-        help_text = font_small.render("Довідка", True, (255, 255, 255))
-        screen.blit(help_text, help_text.get_rect(center=help_btn.center))
+        # Перевіряємо, чи текст виходить за рамки
+        if pop_bar_x + param_bar_width + res_text_width + 10 > inner_rect.right:
+            # Якщо виходить, зменшуємо шрифт ще більше
+            res_text = pygame.font.SysFont("arial", 14).render(f"Повага підлеглих: {respect}%", True, (30, 30, 30))
         
-        # Довідка (якщо відкрита)
-        if show_help:
-            # Фон довідки
-            help_bg = pygame.Surface((WIDTH - 100, 120), pygame.SRCALPHA)
-            help_bg.fill((0, 0, 0, 200))
-            pygame.draw.rect(help_bg, (255, 255, 255, 50), help_bg.get_rect(), 2, border_radius=10)
-            screen.blit(help_bg, (50, 50))
+        screen.blit(res_text, (pop_bar_x + param_bar_width + 5, res_bar_y))
+        
+        # Діалоговий бокс для монолога
+        if dialog_box_visible and current_state == STATE_MONOLOGUE:
+            dialog_box_width = WIDTH - 120
+            dialog_box_rect = pygame.Rect(
+                (WIDTH - dialog_box_width) // 2,
+                dialog_box_y,
+                dialog_box_width,
+                dialog_box_height
+            )
             
-            # Текст довідки
-            help_title = font_mid.render("Увага до параметрів:", True, (255, 255, 0))
-            screen.blit(help_title, help_title.get_rect(center=(WIDTH//2, 70)))
+            dialog_box = pygame.Surface(dialog_box_rect.size, pygame.SRCALPHA)
+            dialog_box.fill((0, 0, 0, 180))
+            pygame.draw.rect(dialog_box, (255, 255, 255, 40), 
+                           dialog_box.get_rect(), 2, border_radius=16)
+            screen.blit(dialog_box, dialog_box_rect.topleft)
             
-            help_desc = font_small.render("У кожного додатка є свої шкали згоди народу та шкала поваги підлеглих, ураховуйте ці параметри при виборах.", True, (255, 255, 255))
+            # Відображення монолога
+            monologue_words = displayed_monologue.split(" ")
+            monologue_lines = []
+            monologue_current = ""
             
-            # Перенесення тексту довідки
-            help_words = help_desc.get_text().split(" ")
-            help_lines = []
-            help_current = ""
-            for word in help_words:
-                test = help_current + word + " "
-                if font_small.size(test)[0] <= WIDTH - 150:
-                    help_current = test
+            for word in monologue_words:
+                test = monologue_current + word + " "
+                if font_mid.size(test)[0] <= dialog_box_rect.width - 40:
+                    monologue_current = test
                 else:
-                    help_lines.append(help_current)
-                    help_current = word + " "
-            help_lines.append(help_current)
+                    monologue_lines.append(monologue_current)
+                    monologue_current = word + " "
+            monologue_lines.append(monologue_current)
             
-            y_help = 100
-            for line in help_lines:
-                line_render = font_small.render(line, True, (255, 255, 255))
-                screen.blit(line_render, line_render.get_rect(center=(WIDTH//2, y_help)))
-                y_help += 22
+            y_dialog = dialog_box_rect.top + 20
+            for line in monologue_lines:
+                line_render = font_mid.render(line, True, (255, 255, 255))
+                screen.blit(line_render, (dialog_box_rect.left + 20, y_dialog))
+                y_dialog += font_mid.get_height() + 4
+            
+            # Підказка про пробіл
+            if char_index >= len(monologue_texts[current_monologue]):
+                if current_monologue < len(monologue_texts) - 1:
+                    hint_text = font_small.render("Натисніть SPACE для продовження", True, (200, 200, 200))
+                else:
+                    hint_text = font_small.render("Натисніть SPACE для прийняття рішення", True, (200, 200, 200))
+                screen.blit(hint_text, hint_text.get_rect(center=(WIDTH//2, dialog_box_rect.bottom + 25)))
         
-        # Репліки для допомоги (знизу)
-        advice_bg = pygame.Surface((WIDTH - 100, 60), pygame.SRCALPHA)
-        advice_bg.fill((0, 20, 40, 180))
-        screen.blit(advice_bg, (50, HEIGHT - 80))
+        # Кнопки вибору (прив'язані до папки)
+        if buttons_visible:
+            # Оновлюємо позиції кнопок відносно папки
+            block_btn.x = folder_rect.centerx - 200
+            block_btn.y = buttons_y
+            unblock_btn.x = folder_rect.centerx + 20
+            unblock_btn.y = buttons_y
+            
+            # Кнопка "Заблокувати"
+            block_color = (200, 50, 50) if not hover_block else (220, 70, 70)
+            pygame.draw.rect(screen, block_color, block_btn, border_radius=8)
+            pygame.draw.rect(screen, (150, 30, 30), block_btn, 2, border_radius=8)
+            block_text = font_mid.render("Заблокувати", True, (255, 255, 255))
+            screen.blit(block_text, block_text.get_rect(center=block_btn.center))
+            
+            # Кнопка "Розблокувати"
+            unblock_color = (50, 180, 80) if not hover_unblock else (70, 200, 100)
+            pygame.draw.rect(screen, unblock_color, unblock_btn, border_radius=8)
+            pygame.draw.rect(screen, (30, 150, 60), unblock_btn, 2, border_radius=8)
+            unblock_text = font_mid.render("Розблокувати", True, (255, 255, 255))
+            screen.blit(unblock_text, unblock_text.get_rect(center=unblock_btn.center))
         
-        advice = font_small.render(advice_texts[current_advice], True, (200, 230, 255))
-        screen.blit(advice, advice.get_rect(center=(WIDTH//2, HEIGHT - 50)))
+        # Кнопка "Довідка" (фіксована позиція)
+        help_color = (100, 100, 200) if not show_help else (150, 100, 100)
+        pygame.draw.rect(screen, help_color, help_btn, border_radius=6)
+        pygame.draw.rect(screen, (150, 150, 255), help_btn, 2, border_radius=6)
+        help_button_text = font_small.render("Довідка", True, (255, 255, 255))
+        screen.blit(help_button_text, help_button_text.get_rect(center=help_btn.center))
         
-        # Зміна репліки кожні 5 секунд
-        if pygame.time.get_ticks() % 5000 < 50:
-            current_advice = (current_advice + 1) % len(advice_texts)
+        # Довідка (проста, зверху екрану)
+        if show_help:
+            # Фон довідки (зверху, по всій ширині, але не закриває кнопку)
+            help_height = 80
+            help_bg = pygame.Surface((WIDTH - 130, help_height), pygame.SRCALPHA)  # Не закриває кнопку довідки
+            help_bg.fill((0, 0, 0, 220))
+            pygame.draw.rect(help_bg, (255, 255, 255, 50), help_bg.get_rect(), 2, border_radius=15)
+            screen.blit(help_bg, (10, 10))  # Відступ зліва
+            
+            # Текст довідки (простий, як ви написали)
+            help_text_lines = [
+                "у кожного додатка є свої шкали згоди народу",
+                "та шкала поваги підлеглих, ураховуйте ці параметри при виборах."
+            ]
+            
+            # Перший рядок
+            line1 = font_small.render(help_text_lines[0], True, (255, 255, 255))
+            screen.blit(line1, (30, 30))
+            
+            # Другий рядок
+            line2 = font_small.render(help_text_lines[1], True, (255, 255, 255))
+            screen.blit(line2, (30, 60))
         
         # Ефект меркотіння при наведенні на кнопку блокування
-        if hover_block:
+        if hover_block and buttons_visible:
             flicker_alpha = abs(int(100 * math.sin(flicker_timer * 0.1)))
             flicker_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             flicker_surface.fill((100, 0, 0, flicker_alpha))
             screen.blit(flicker_surface, (0, 0))
             
             # Попередження про блокування
-            warning = font_small.render("УВАГА: Ця дія може мати серйозні наслідки!", True, (255, 100, 100))
+            warning = font_small.render("УВАГА: Блокування додатка може мати наслідки!", True, (255, 100, 100))
             warning.set_alpha(150 + flicker_alpha)
             screen.blit(warning, warning.get_rect(center=(WIDTH//2, block_btn.y - 30)))
         
+        # Ефект при наведенні на кнопку розблокування
+        if hover_unblock and buttons_visible:
+            happy_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            happy_surface.fill((0, 100, 0, 20))
+            screen.blit(happy_surface, (0, 0))
+            
+            # Позитивне повідомлення
+            positive_text = font_small.render("Рішення може підвищити вашу популярність серед народу!", True, (100, 255, 100))
+            screen.blit(positive_text, positive_text.get_rect(center=(WIDTH//2, unblock_btn.y - 30)))
+        
         pygame.display.update()
-
 # ---------------- ЛОБІ ----------------
 def lobby():
     play_music("lobby_music.mp3")
@@ -1018,25 +1194,23 @@ def lobby():
 
         screen.blit(lobby_bg, (0, 0))
         
-        # Додаємо декоративні тексти в лобі
-        title1 = font_big.render("Selection protocol", True, (255, 215, 0))
-        title1_shadow = font_big.render("Selection protocol", True, (128, 107, 0))
+        # Додаємо декоративні тексти в лобі з більшим заголовком
+        title1 = font_huge.render("Selection protocol", True, (255, 215, 0))
+        title1_shadow = font_huge.render("Selection protocol", True, (128, 107, 0))
         title2 = font_mid.render("темна історія UKRnadzor", True, (200, 200, 200))
         
         # Тінь для заголовка
-        screen.blit(title1_shadow, (WIDTH//2 - title1.get_width()//2 + 3, 103))
-        screen.blit(title1, (WIDTH//2 - title1.get_width()//2, 100))
-        screen.blit(title2, title2.get_rect(center=(WIDTH//2, 160)))
+        screen.blit(title1_shadow, (WIDTH//2 - title1.get_width()//2 + 4, 94))
+        screen.blit(title1, (WIDTH//2 - title1.get_width()//2, 90))
+        screen.blit(title2, title2.get_rect(center=(WIDTH//2, 170)))
         
-        # Кнопки (розташовані нижче через доданий текст)
+        # Кнопки (зміщені вище)
         draw_button(start_btn, "Почати гру")
         draw_button(settings_btn, "Налаштування")
         draw_button(credits_btn, "Титри")
         draw_button(idea_btn, "Задумка гри")
 
         pygame.display.update()
-
-
 # ---------------- ТИТРИ ----------------
 def credits():
     play_music("credits_music.mp3")
@@ -1113,4 +1287,3 @@ def game_idea():
 # ---------------- ЗАПУСК ----------------
 intro()
 lobby()
-
