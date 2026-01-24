@@ -757,41 +757,175 @@ def gameplay_folder():
         office_bg = pygame.Surface((WIDTH, HEIGHT))
         office_bg.fill((180, 190, 210))
     
-    # Завантажуємо іконку додатка
+    # Звуки
     try:
-        app_icon = pygame.image.load("app_icon.png").convert_alpha()
+        happy_sound = pygame.mixer.Sound("happypeaple.mp3")
+        happy_sound.set_volume(0.3)
+        happy_sound_played = False
+    except:
+        happy_sound = None
+        happy_sound_played = False
+        
+    try:
+        block_sound = pygame.mixer.Sound("blockmusic.mp3")
+        block_sound.set_volume(0.4)
+        block_sound_played = False
+    except:
+        block_sound = None
+        block_sound_played = False
+    
+    # Список додатків для блокування
+    apps = [
+        {
+            "name": "YouTube",
+            "description": "Відеохостинг з мільйонами користувачів. Містить потенційно небезпечні матеріали.",
+            "popularity": 5,
+            "respect": 20,
+            "icon": "app_icon.png",
+            "monologues": [
+                "такк, глянемо. Що вони там нового насочіняли?",
+                "назва папки: найважливіші додатки для заблокування?!",
+                "звучить дуже стрьомно. Стоп що..",
+                "перший додаток для блокування ютуб?! чим він їм неугодив",
+                "хотя тут написано він небезпечний, хмм"
+            ]
+        },
+        {
+            "name": "TikTok",
+            "description": "Платформа для коротких відео. Дуже популярний серед молоді, але може викликати залежність.",
+            "popularity": 10,
+            "respect": 60,
+            "icon": "tiktok.png",
+            "monologues": [
+                "далі в нас... тікток",
+                "Це ж дуже популярно серед молоді",
+                "Але люд деградує від коротхих відео, щож вибрати?"
+            ]
+        },
+        {
+            "name": "Whatsapp",
+            "description": "месенджер який використовується для шахрайства",
+            "popularity": 55,
+            "respect": 60,
+            "icon": "watsap.png",
+            "monologues": [
+                "далі в нас... вацап",
+                "моя бабуся цим користується",
+                "тут написано:'месенджер який використовується для шахрайства'",
+                "дуже дивно"
+            ]
+        },
+        {
+            "name": "VPN",
+            "description": "ВПН, потрібно швидко заблокувати, НЕГАЙНО",
+            "popularity": 20,
+            "respect": 100,
+            "icon": "VPN.png",
+            "monologues": [
+                "впн?!",
+                "я не знаю що це таке"
+            ]
+        },
+        {
+            "name": "Wechat",
+            "description": "китайський нац. месенджер.",
+            "popularity": 80,
+            "respect": 20,
+            "icon": "wechat.png",
+            "monologues": [
+                "вічат? він мене так бісить коли треба заєреструватися",
+                "а засіб входу є тільки він",
+                "і нащо треба Україні китайський месенджер?"
+            ]
+        },
+        {
+            "name": "даркнет",
+            "description": "НЕГАЙНЕ БЛОКУВАННЯ",
+            "popularity": 100,
+            "respect": 100,
+            "icon": "Darknet.png",
+            "monologues": [
+                "даркнет це додаток для шахраїв",
+                "в Україні його треба заблокувати"
+            ]
+        },
+        {
+            "name": "roblox",
+            "description": "платформа для створювання ігрових проектів, в чаті ігор багато нехороших людей",
+            "popularity": 10,
+            "respect": 75,
+            "icon": "roblox.png",
+            "monologues": [
+                "роблокс? опис звучить дуже страшно",
+                "тай гра роблокс, це додаток який розрахований на дітей",
+                "треба вирішувати"
+            ]
+        },
+        {
+            "name": "zoom",
+            "description": "першокласники просять видалити цей додаток ізза онлайн уроків",
+            "popularity": 80,
+            "respect": 40,
+            "icon": "zoom.png",
+            "monologues": [
+                "школярам треба вчитися",
+                "нащо блокувати зум",
+                "чи може поприколу заблокати?)"
+            ]
+        },
+        {
+            "name": "telegram",
+            "description": "незаконний збір данних, є потреба блокування",
+            "popularity": 10,
+            "respect": 40,
+            "icon": "telegram.png",
+            "monologues": [
+                "телеграм? в нас же група в телеграмі щоб приймати рішення",
+                "що за фігня",
+                "я щось невірю що вони робили цей список 2 ночі __"
+            ]
+        },
+        {
+            "name": "facebook",
+            "description": "пощирюється терорестичний контент у чатах та коротких відео",
+            "popularity": 50,
+            "respect": 50,
+            "icon": "facebook.png",
+            "monologues": [
+                "фейсбук??, я там часто сижу, і терорестичного контенту ненаблюдаю",
+                "ну раз тут пишуть таке... треба подумати"
+            ]
+        },
+        {
+            "name": "instagram",
+            "description": "порушення Законодавства україни",
+            "popularity": 5,
+            "respect": 10,
+            "icon": "insta.png",
+            "monologues": [
+                "цікаво що там за порушення",
+                "треба буде в гени спитати",
+                "в інсті багато молодих людей сидять, боюсь уявити що вони скажуть якщо я заблокую додаток"
+            ]
+        },
+    ]
+    
+    current_app_index = 0
+    current_app = apps[current_app_index]
+    
+    # Завантажуємо іконку поточного додатка
+    try:
+        app_icon = pygame.image.load(current_app["icon"]).convert_alpha()
         app_icon = pygame.transform.scale(app_icon, (80, 80))
     except:
         # Якщо картинки немає, створюємо просту іконку
         app_icon = pygame.Surface((80, 80), pygame.SRCALPHA)
         pygame.draw.rect(app_icon, (255, 0, 0), (0, 0, 80, 80), border_radius=15)
-        text = font_small.render("YT", True, (255, 255, 255))
+        text = font_small.render("YT" if current_app_index == 0 else "TT", True, (255, 255, 255))
         app_icon.blit(text, text.get_rect(center=(40, 40)))
     
-    # Звук для кнопки розблокування
-    try:
-        happy_sound = pygame.mixer.Sound("happypeaple.mp3")
-        happy_sound.set_volume(0.3)
-        sound_played = False
-    except:
-        happy_sound = None
-        sound_played = False
-    
-    # Параметри додатку (YouTube) - оновлені значення
-    app_name = "YouTube"
-    app_description = "Відеохостинг з мільйонами користувачів. Містить як корисний контент, так і потенційно небезпечні матеріали."
-    popularity = 5  # Змінено: було 92, стало 5
-    respect = 20    # Змінено: було 45, стало 20
-    
     # Монолог головного героя
-    monologue_texts = [
-        "О... папка від Гени. Що там у нього цього разу?",
-        "YouTube... Цей додаток розповсюджує забагато незалежних думок.",
-        "Люди проводять там години, замість того щоб працювати.",
-        "Але з іншого боку... він дуже популярний серед народу.",
-        "Підлеглі теж ним часто користуються..."
-    ]
-    
+    monologue_texts = current_app["monologues"]
     current_monologue = 0
     displayed_monologue = ""
     char_index = 0
@@ -817,8 +951,8 @@ def gameplay_folder():
     folder_speed = 15
     
     # Папка розміри (зменшені)
-    folder_width = 500  # Зменшено: було WIDTH - 250, стало 500
-    folder_height = 400  # Зменшено: було HEIGHT - 220, стало 400
+    folder_width = 500
+    folder_height = 400
     
     # Анімація діалогового бокса
     dialog_box_height = 140
@@ -839,6 +973,7 @@ def gameplay_folder():
     STATE_MONOLOGUE = 1
     STATE_CHOICE = 2
     STATE_FOLDER_HIDING = 3
+    STATE_NEXT_APP = 4  # Новий стан для переходу до наступного додатка
     
     current_state = STATE_FOLDER_APPEARING
     
@@ -886,11 +1021,18 @@ def gameplay_folder():
                 hover_unblock = unblock_btn.collidepoint(event.pos)
                 
                 # Відтворити звук при наведенні на кнопку розблокування
-                if hover_unblock and happy_sound and not sound_played and current_state == STATE_CHOICE:
+                if hover_unblock and happy_sound and not happy_sound_played and current_state == STATE_CHOICE:
                     happy_sound.play()
-                    sound_played = True
+                    happy_sound_played = True
                 elif not hover_unblock:
-                    sound_played = False
+                    happy_sound_played = False
+                
+                # Відтворити звук при наведенні на кнопку блокування
+                if hover_block and block_sound and not block_sound_played and current_state == STATE_CHOICE:
+                    block_sound.play()
+                    block_sound_played = True
+                elif not hover_block:
+                    block_sound_played = False
         
         # Анімація меркотіння
         flicker_timer += 1
@@ -937,9 +1079,49 @@ def gameplay_folder():
                 buttons_y += buttons_speed
             
             if folder_y > HEIGHT + 200:
-                # Повернення в лобі
-                play_music("lobby_music.mp3")
-                return
+                # Переходимо до наступного додатка або повертаємось в лобі
+                current_app_index += 1
+                
+                if current_app_index < len(apps):
+                    # Завантажуємо наступний додаток
+                    current_state = STATE_NEXT_APP
+                    current_app = apps[current_app_index]
+                    
+                    # Завантажуємо нову іконку
+                    try:
+                        app_icon = pygame.image.load(current_app["icon"]).convert_alpha()
+                        app_icon = pygame.transform.scale(app_icon, (80, 80))
+                    except:
+                        app_icon = pygame.Surface((80, 80), pygame.SRCALPHA)
+                        pygame.draw.rect(app_icon, (0, 200, 255), (0, 0, 80, 80), border_radius=15)
+                        text = font_small.render("TT", True, (255, 255, 255))
+                        app_icon.blit(text, text.get_rect(center=(40, 40)))
+                    
+                    # Оновлюємо монологи
+                    monologue_texts = current_app["monologues"]
+                    current_monologue = 0
+                    displayed_monologue = ""
+                    char_index = 0
+                    last_char_time = pygame.time.get_ticks()
+                    
+                    # Скидаємо анімації
+                    folder_y = HEIGHT + 200
+                    dialog_box_y = HEIGHT + dialog_box_height
+                    buttons_y = HEIGHT + 100
+                    dialog_box_visible = False
+                    buttons_visible = False
+                    
+                    # Оновлюємо стан
+                    current_state = STATE_FOLDER_APPEARING
+                else:
+                    # Повернення в лобі
+                    play_music("lobby_music.mp3")
+                    return
+        
+        elif current_state == STATE_NEXT_APP:
+            # Коротка пауза перед появою наступного додатка
+            pygame.time.delay(500)
+            current_state = STATE_FOLDER_APPEARING
         
         # Малюємо папку (зменшену)
         folder_rect = pygame.Rect((WIDTH - folder_width) // 2, int(folder_y), folder_width, folder_height)
@@ -964,8 +1146,9 @@ def gameplay_folder():
         
         # "Скоч" на іконці (навскіс, напівпрозорий)
         tape_surface = pygame.Surface((100, 25), pygame.SRCALPHA)
-        pygame.draw.rect(tape_surface, (200, 50, 50, 180), (0, 0, 100, 25), border_radius=3)
-        tape_text = font_very_small.render("СКОЛ", True, (255, 255, 255))
+        tape_color = (200, 50, 50) if current_app_index == 0 else (0, 150, 200)  # Різний колір для кожного додатка
+        pygame.draw.rect(tape_surface, (*tape_color, 180), (0, 0, 100, 25), border_radius=3)
+        tape_text = font_very_small.render("", True, (255, 255, 255))
         tape_text.set_alpha(200)
         tape_surface.blit(tape_text, tape_text.get_rect(center=(50, 12)))
         
@@ -975,7 +1158,7 @@ def gameplay_folder():
         screen.blit(rotated_tape, tape_pos)
         
         # Назва додатка
-        app_title = font_big.render(app_name, True, (30, 30, 30))
+        app_title = font_big.render(current_app["name"], True, (30, 30, 30))
         screen.blit(app_title, (inner_rect.x + 130, inner_rect.y + 30))
         
         # Опис додатка
@@ -984,7 +1167,7 @@ def gameplay_folder():
         pygame.draw.rect(screen, (220, 220, 220), desc_rect, 1, border_radius=8)
         
         # Перенесення тексту опису
-        words = app_description.split(" ")
+        words = current_app["description"].split(" ")
         lines = []
         current_line = ""
         for word in words:
@@ -1012,16 +1195,16 @@ def gameplay_folder():
         pop_bar_y = param_start_y
         
         pygame.draw.rect(screen, (200, 200, 200), (pop_bar_x, pop_bar_y, param_bar_width, param_bar_height), border_radius=5)
-        pygame.draw.rect(screen, (50, 150, 50), (pop_bar_x, pop_bar_y, int(param_bar_width * popularity/100), param_bar_height), border_radius=5)
+        pygame.draw.rect(screen, (50, 150, 50), (pop_bar_x, pop_bar_y, int(param_bar_width * current_app["popularity"]/100), param_bar_height), border_radius=5)
         
         # Текст відсотків згоди народу (не виходить за рамки)
-        pop_text = font_very_small.render(f"Згода народу: {popularity}%", True, (30, 30, 30))
+        pop_text = font_very_small.render(f"Згода народу: {current_app['popularity']}%", True, (30, 30, 30))
         pop_text_width = pop_text.get_width()
         
         # Перевіряємо, чи текст виходить за рамки
         if pop_bar_x + param_bar_width + pop_text_width + 10 > inner_rect.right:
             # Якщо виходить, зменшуємо шрифт ще більше
-            pop_text = pygame.font.SysFont("arial", 14).render(f"Згода народу: {popularity}%", True, (30, 30, 30))
+            pop_text = pygame.font.SysFont("arial", 14).render(f"Згода народу: {current_app['popularity']}%", True, (30, 30, 30))
         
         screen.blit(pop_text, (pop_bar_x + param_bar_width + 5, pop_bar_y))
         
@@ -1029,16 +1212,16 @@ def gameplay_folder():
         res_bar_y = param_start_y + 35
         
         pygame.draw.rect(screen, (200, 200, 200), (pop_bar_x, res_bar_y, param_bar_width, param_bar_height), border_radius=5)
-        pygame.draw.rect(screen, (50, 100, 200), (pop_bar_x, res_bar_y, int(param_bar_width * respect/100), param_bar_height), border_radius=5)
+        pygame.draw.rect(screen, (50, 100, 200), (pop_bar_x, res_bar_y, int(param_bar_width * current_app["respect"]/100), param_bar_height), border_radius=5)
         
         # Текст відсотків поваги підлеглих (не виходить за рамки)
-        res_text = font_very_small.render(f"Повага підлеглих: {respect}%", True, (30, 30, 30))
+        res_text = font_very_small.render(f"Повага підлеглих: {current_app['respect']}%", True, (30, 30, 30))
         res_text_width = res_text.get_width()
         
         # Перевіряємо, чи текст виходить за рамки
         if pop_bar_x + param_bar_width + res_text_width + 10 > inner_rect.right:
             # Якщо виходить, зменшуємо шрифт ще більше
-            res_text = pygame.font.SysFont("arial", 14).render(f"Повага підлеглих: {respect}%", True, (30, 30, 30))
+            res_text = pygame.font.SysFont("arial", 14).render(f"Повага підлеглих: {current_app['respect']}%", True, (30, 30, 30))
         
         screen.blit(res_text, (pop_bar_x + param_bar_width + 5, res_bar_y))
         
@@ -1126,8 +1309,8 @@ def gameplay_folder():
             
             # Текст довідки (простий, як ви написали)
             help_text_lines = [
-                "у кожного додатка є свої шкали згоди народу",
-                "та шкала поваги підлеглих, ураховуйте ці параметри при виборах."
+                "у кожного додатка є свої шкали: згоди народу(чим менша цифра, тим більший ризик бунтів)",
+                "тим більший ризик бунтів)та шкала поваги підлеглих, ураховуйте ці параметри при виборах."
             ]
             
             # Перший рядок
