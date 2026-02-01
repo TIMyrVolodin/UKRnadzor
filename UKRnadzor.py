@@ -377,7 +377,7 @@ def prologue():
 
     texts = [
         "я не думаю що приношу людям радість",
-        "з іншої сторони, я завід друзів..",
+        "з іншої сторони, я завів друзів..",
         "чи хороших?.. вони просто приносять папки, а вечором просто прощаються",
         "ЯЖ БОСС, вони повинні зі мною дружити, але чи хочуть вони цього?",
         "чому мене не питають чого я хочу...",
@@ -1026,7 +1026,7 @@ def gameplay_folder():
         },
         {
             "name": "viber",
-            "description": "загроза скаму пожилих людей",
+            "description": "загроза скаму літніх людей",
             "popularity": 15,
             "respect": 10,
             "icon": "viber.png",
@@ -1426,12 +1426,12 @@ def gameplay_folder():
             screen.blit(help_bg, (10, 10))
             
             help_text_lines = [
-                "у кожного додатка є свої шкали: згоди народу(чим менша цифра,",
-                "тим більший ризик бунтів)та шкала поваги підлеглих,",
-                "ураховуйте ці параметри при виборах."
+                "у кожного додатка є свої шкали: згоди народу(чим менша цифра, тим ",
+                "більший ризик бунтів)та шкала поваги підлеглих,",
+                "ураховуйте ці параметри при виборах"
             ]
             
-            tiny_font = pygame.font.SysFont("arial", 14)
+            tiny_font = pygame.font.SysFont("arial", 21)
             
             line1 = tiny_font.render(help_text_lines[0], True, (255, 255, 255))
             screen.blit(line1, (20, 25))
@@ -1531,6 +1531,7 @@ def show_ending_1():
     STATE_FINAL_MONOLOGUE = 5
     STATE_FADE_OUT = 6
     STATE_FINAL_TEXT = 7
+    STATE_FADE_TO_LOBBY = 8  # Додаємо новий стан
     
     current_state = STATE_FADE_IN
     alpha = 255
@@ -1638,7 +1639,13 @@ def show_ending_1():
                         show_content = not show_content
                     
                     if menu_btn.collidepoint(event.pos):
-                        current_state = STATE_FADE_OUT 
+                        current_state = STATE_FADE_TO_LOBBY  # Змінюємо на новий стан
+                        alpha = 0  # Починаємо затемнення
+                
+                # Дозволяємо вийти з кінцівки в будь-який момент (опціонально)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and current_state == STATE_FINAL_TEXT:
+                    current_state = STATE_FADE_TO_LOBBY
+                    alpha = 0
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 if current_state == STATE_MONOLOGUE or current_state == STATE_FINAL_MONOLOGUE:
@@ -1726,8 +1733,15 @@ def show_ending_1():
                 pygame.time.delay(1000)
                 current_state = STATE_FINAL_TEXT
         
+        elif current_state == STATE_FADE_TO_LOBBY:  # Новий стан
+            alpha += 10
+            if alpha >= 255:
+                # Повертаємося в лобі
+                play_music("lobby_music.mp3")
+                return  # Виходимо з функції кінцівки
+        
         elif current_state == STATE_FINAL_TEXT:
-            pass
+            pass  # Нічого не робимо, чекаємо натискання кнопки
         
         screen.fill((0, 0, 0)) 
         
@@ -1770,7 +1784,7 @@ def show_ending_1():
                 screen.blit(fade_surface, (0, 0))
             
             title_text = "КІНЦІВКА #1: ДОБРИЙ ВИБІР"
-            subtitle_text = "Ти вибрав шлях співчуття та розуміння.\nНарод вдячний тобі, але система не пробачає слабкості.\nІнколи доброта може бути найбільшою слабкістю."
+            subtitle_text = "Ти вибрав шлях співчуття та розуміння.\nНарод вдячний тобі, але система не пробачає слабкості.\nСистема найняла кілера, який виконав свою ціль"
             
             if show_content:
                 text_box_width = min(WIDTH - 100, 700)
@@ -1857,12 +1871,14 @@ def show_ending_1():
             fade_surface.set_alpha(alpha)
             screen.blit(fade_surface, (0, 0))
         
-        pygame.display.update()
+        # Також додамо затемнення для STATE_FADE_TO_LOBBY
+        if current_state == STATE_FADE_TO_LOBBY and alpha > 0:
+            fade_surface = pygame.Surface((WIDTH, HEIGHT))
+            fade_surface.fill((0, 0, 0))
+            fade_surface.set_alpha(alpha)
+            screen.blit(fade_surface, (0, 0))
         
-        if current_state == STATE_FADE_OUT and alpha >= 255:
-            play_music("lobby_music.mp3")
-            return
-
+        pygame.display.update()
 # ---------------- КІНЦІВКА #2 ----------------
 def show_ending_2():
     """Показує кінцівку #2 - жорсткий цензор"""
@@ -1928,11 +1944,11 @@ def show_ending_2():
     ]
     
     second_monologues = [
-        "Що це?..",
-        "Мої очі... вони відмовляються бачити?",
-        "Я бачу лише один образ...",
-        "Велике око спостерігає за мною...",
-        "Воно бачить все... воно знає все..."
+        "вони прийшли?..",
+        "вони прийшли за мною?",
+        "я не встиг втекти",
+        "народ...",
+        "я враг народу"
     ]
     
     current_monologue = 0
@@ -2184,7 +2200,7 @@ def show_ending_2():
                 alpha -= 5
             
             title_text = "КІНЦІВКА #2: ЖОРСТКИЙ ЦЕНЗОР"
-            subtitle_text = "Ти вибрав шлях сили та контролю.\nЗаблокувавши майже всі додатки, ти встановив тотальний контроль.\nАле контроль має свою ціну - ти став рабом системи,\nяку створив. Велике Око спостерігає за кожним твоїм кроком.\nСвобода пожертвована безпеці завжди обертається тиранією."
+            subtitle_text = "Ти вибрав шлях сили та контролю.\nЗаблокувавши майже всі додатки, ти встановив тотальний контроль.\nАле контроль має свою ціну - ти став рабом системи,\nнарод найняв кіллера щоб тебе вбити.\nКілер виконав свою ціль."
             
             if show_content:
                 text_box_width = min(WIDTH - 100, 700)
@@ -2579,7 +2595,7 @@ def show_ending_3():
                 timer = pygame.time.get_ticks()
         
         elif current_state == STATE_STREET:
-            if pygame.time.get_ticks() - timer > 500:  # Затримка 0.5 секунди
+            if pygame.time.get_ticks() - timer > 1000:  # Затримка 1 секунда
                 current_state = STATE_STREET_EVEY
                 # Відтворюємо звук на 1 секунду
                 if perepyg_sound and not perepyg_played:
@@ -2771,7 +2787,7 @@ def show_ending_4():
         pass
     
     title_text = "КІНЦІВКА #4: СФОКУСОВАНИЙ ЦЕНЗОР"
-    subtitle_text = "думаю блокування роблоксу було некращою ідеєю. \nви прокидаєтесь від запаху полум'я"
+    subtitle_text = "думаю блокування роблоксу було некращою ідеєю. \nви прокидаєтесь від запаху полум'я. \nБіля вашого дому стоять обурені першокласники"
     
     FADE_IN = 0
     SHOW_CONTENT = 1
@@ -3275,8 +3291,9 @@ def credits():
         "Розробник: timyrka_pro",
         "Дизайн: timyrka_pro / gemini",
         "Музика: google / zvukogram.com",
+        "tg: lgvp_build.official",
         "",
-        "Дякую за гру!",
+        "Дякую за гру ранньому доступі(beta)",
         "Чекайте подальших оновлень"
     ]
 
@@ -3414,9 +3431,9 @@ def lobby():
 
         screen.blit(lobby_bg, (0, 0))
         
-        title1 = font_huge.render("Selection protocol", True, (255, 215, 0))
-        title1_shadow = font_huge.render("Selection protocol", True, (128, 107, 0))
-        title2 = font_mid.render("темна історія UKRnadzor", True, (200, 200, 200))
+        title1 = font_huge.render("Selection protocol(BETA)", True, (255, 215, 0))
+        title1_shadow = font_huge.render("Selection protocol(BETA)", True, (128, 107, 0))
+        title2 = font_mid.render("темна сторона UKRnadzor", True, (200, 200, 200))
         
         screen.blit(title1_shadow, (WIDTH//2 - title1.get_width()//2 + 4, 94))
         screen.blit(title1, (WIDTH//2 - title1.get_width()//2, 90))
